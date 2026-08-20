@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0f1218">
+<title>Arrow Rush V5</title>
+<style>
+:root{--bg:#eef1f5;--panel:#fff;--text:#171b24;--muted:#7b8492;--line:#e1e5eb;--accent:#ff5b35;--accent2:#ff943d;--cell:#dfe4ea;--shadow:0 12px 35px #17203318}
+body.dark{--bg:#0f1218;--panel:#191e27;--text:#f6f7fa;--muted:#98a1af;--line:#2a303b;--cell:#292f39;--shadow:0 14px 40px #0008}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(circle at 50% -20%,#fff 0,var(--bg) 55%);color:var(--text);user-select:none}
+body.dark{background:radial-gradient(circle at 50% -20%,#252a34 0,var(--bg) 55%)}
+button{font:inherit;color:inherit;touch-action:manipulation}
+.app{height:100dvh;max-width:760px;margin:auto;padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));display:flex;flex-direction:column}
+.top{height:44px;display:flex;align-items:center;justify-content:space-between;flex:none}.brand{font-weight:950;font-size:20px;letter-spacing:-1px;display:flex;align-items:center;gap:7px}.logo{width:29px;height:29px;border-radius:9px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 5px 15px #ff5b3540}.brand b{color:var(--accent)}.actions{display:flex;gap:6px}.icon{width:35px;height:35px;border:0;border-radius:11px;background:var(--panel);box-shadow:var(--shadow);cursor:pointer}
+.levelbar{display:flex;align-items:center;justify-content:space-between;height:38px;flex:none}.level{font-weight:950}.diff{font-size:9px;font-weight:900;text-transform:uppercase;padding:4px 8px;border-radius:20px;color:var(--accent);background:#ff5b3518;margin-left:7px}.stars{letter-spacing:1px}.star{opacity:.18}.star.on{opacity:1}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;flex:none;margin-bottom:7px}.stat{background:var(--panel);border:1px solid var(--line);border-radius:11px;text-align:center;padding:6px 3px}.stat small{display:block;color:var(--muted);font-size:8px;font-weight:850;text-transform:uppercase}.stat strong{font-size:13px}
+.stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:2px 0}.board{--n:7;width:min(calc(100vw - 20px),calc(100dvh - 188px),640px);aspect-ratio:1;display:grid;grid-template-columns:repeat(var(--n),1fr);grid-template-rows:repeat(var(--n),1fr);gap:clamp(2px,.7vw,5px);padding:clamp(5px,1.2vw,9px);border-radius:clamp(17px,4vw,28px);background:#ffffff70;box-shadow:0 20px 60px #17203320,inset 0 0 0 1px #ffffffaa}
+body.dark .board{background:#ffffff08;box-shadow:0 20px 60px #0007,inset 0 0 0 1px #ffffff08}
+.cell{position:relative;border-radius:clamp(5px,1.3vw,10px)}.cell.valid{background:var(--cell)}.cell.invalid{visibility:hidden}
+.arrow{position:absolute;inset:2px;display:grid;place-items:center;border-radius:clamp(5px,1.3vw,9px);color:#fff;font-size:clamp(16px,calc(68vw/var(--n)),42px);font-weight:1000;box-shadow:inset 0 -3px 0 #0002,0 3px 8px #0002;cursor:pointer;transition:transform .16s,opacity .18s,filter .15s}.arrow:active{transform:scale(.83)}.arrow.blocked{animation:shake .22s}.arrow.hint{animation:pulse .55s infinite alternate}.arrow.exit{opacity:0;transform:translate(var(--ex),var(--ey)) rotate(var(--rot)) scale(.4)}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}@keyframes pulse{to{box-shadow:0 0 0 8px #ffc10755}}
+.comboPop{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(.7);font-size:28px;font-weight:1000;color:var(--accent);opacity:0;pointer-events:none;z-index:75}.comboPop.show{animation:comboPop .55s ease-out}@keyframes comboPop{0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-90%) scale(1)}}
+.message{height:25px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px;font-weight:800;text-align:center;flex:none}.bottom{display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:7px;flex:none}.control{height:42px;border:0;border-radius:13px;background:var(--panel);box-shadow:var(--shadow);font-size:12px;font-weight:900;cursor:pointer}.primary{color:#fff!important;background:linear-gradient(135deg,var(--accent),var(--accent2))!important}
+.app.paused{filter:saturate(.7)}
+.overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:18px;background:#080b10aa;backdrop-filter:blur(10px)}.overlay.show{display:flex}.modal{width:min(92vw,400px);max-height:90dvh;overflow:auto;padding:25px;border-radius:27px;background:var(--panel);box-shadow:0 30px 100px #0008;text-align:center;animation:in .25s ease}.modal h2{margin:4px 0;font-size:28px;font-weight:950}.modal p{color:var(--muted);margin:6px 0 18px}.modalIcon{font-size:52px}.modalStars{font-size:29px;margin:12px}.modalStats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:15px 0}.modalStat{padding:9px 3px;border-radius:12px;background:#7f7f7f12}.modalStat small{display:block;color:var(--muted);font-size:8px}.modalStat strong{font-size:15px}.modalBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}.modalBtn{height:44px;border:0;border-radius:13px;background:#7f7f7f12;font-weight:900;cursor:pointer}.levelList{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;max-height:52vh;overflow:auto;margin:15px 0}.levelBtn{aspect-ratio:1;border:0;border-radius:11px;background:#7f7f7f12;font-weight:900}.levelBtn.current{background:var(--accent);color:#fff}.levelBtn.locked{opacity:.35}.close{width:100%}
+.toast{position:fixed;z-index:80;left:50%;bottom:78px;transform:translate(-50%,20px);opacity:0;padding:9px 14px;border-radius:99px;background:#171b24;color:#fff;font-size:11px;font-weight:850;pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+.particle{position:fixed;z-index:70;width:6px;height:6px;border-radius:50%;pointer-events:none;animation:fly .55s ease-out forwards}@keyframes fly{to{opacity:0;transform:translate(var(--x),var(--y)) scale(.1)}}@keyframes in{from{opacity:0;transform:scale(.85) translateY(15px)}to{opacity:1;transform:none}}
+@media(max-width:380px){.brand{font-size:18px}.stats{gap:3px}.stat{padding:5px 2px}.stat strong{font-size:12px}.control{height:39px;font-size:11px}}
+@media(max-height:520px) and (orientation:landscape){.stats{display:none}.top{height:35px}.levelbar{height:32px}.board{width:min(calc(100vw - 150px),calc(100dvh - 60px))}.bottom{position:absolute;left:8px;top:50%;width:115px;display:flex;flex-direction:column;transform:translateY(-50%)}.message{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top"><div class="brand"><div class="logo">➜</div>ARROW<b>RUSH</b></div><div class="actions"><button class="icon" id="levels">▦</button><button class="icon" id="theme">◐</button><button class="icon" id="pause">Ⅱ</button></div></header>
+<div style="text-align:center;font-size:9px;font-weight:900;letter-spacing:1px;color:var(--muted);margin:-2px 0 2px">∞ ENDLESS MODE</div>
+<div style="display:flex;gap:6px;margin:2px 0 5px">
+<button class="control modeBtn" data-mode="easy" style="height:34px;flex:1">🟢 Easy</button>
+<button class="control modeBtn" data-mode="medium" style="height:34px;flex:1">🟡 Medium</button>
+<button class="control modeBtn" data-mode="hard" style="height:34px;flex:1">🔴 Hard</button>
+</div>
+<div id="fillInfo" style="text-align:center;font-size:8px;font-weight:900;color:var(--muted);height:12px"></div>
+<div class="levelbar"><div><span class="level" id="level">Level 1</span><span class="diff" id="diff">Easy</span></div><div class="stars" id="stars">★ ★ ★</div></div>
+<div class="stats"><div class="stat"><small>Combo</small><strong id="combo">0×</strong></div><div class="stat"><small>Moves</small><strong id="moves">0</strong></div><div class="stat"><small>Left</small><strong id="left">0</strong></div><div class="stat"><small>Time</small><strong id="time">00:00</strong></div><div class="stat"><small>Errors</small><strong id="errors">0</strong></div></div>
+<main class="stage"><div class="board" id="board"></div></main>
+<div class="message" id="message">Find an arrow with a clear path.</div><div id="comboPop" class="comboPop"></div>
+<div class="bottom"><button class="control" id="undo">↶ Undo</button><button class="control primary" id="hint">💡 Hint</button><button class="control" id="restart">↻ Restart</button></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="win">
+<div class="modal"><div class="modalIcon">🏆</div><h2>Level Complete!</h2><p id="winSub">Excellent work!</p><div class="modalStars" id="winStars">★★★</div><div class="modalStats"><div class="modalStat"><small>Moves</small><strong id="wm">0</strong></div><div class="modalStat"><small>Time</small><strong id="wt">00:00</strong></div><div class="modalStat"><small>Errors</small><strong id="we">0</strong></div></div><div class="modalBtns"><button class="modalBtn" id="replay">Replay</button><button class="modalBtn primary" id="next">Next Level →</button></div></div>
+</div>
+
+<div class="overlay" id="levelsModal">
+<div class="modal"><div class="modalIcon">🧩</div><h2>Levels</h2><p>Unlocked levels</p><div class="levelList" id="levelList"></div><button class="modalBtn close" id="closeLevels">Close</button></div>
+</div>
+
+<div class="overlay" id="pauseModal">
+<div class="modal"><div class="modalIcon">⏸️</div><h2>Paused</h2><p>Your puzzle is waiting.</p><button class="modalBtn primary close" id="resume">Continue</button></div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- storage ---------- */
+const STORE="arrowRushV3";
+const saved=JSON.parse(localStorage.getItem(STORE)||"{}");
+let mode=saved.mode||"easy";
+let current=Number(saved.current)||1;
+let unlocked=Math.max(1,Number(saved.unlocked)||1);
+let scores=saved.scores||{};
+let streak=Number(saved.streak)||0;
+let dark=!!saved.dark;
+
+/* ---------- constants ---------- */
+const DIRS={
+ U:{dx:0,dy:-1,s:"↑",rot:0},
+ R:{dx:1,dy:0,s:"→",rot:90},
+ D:{dx:0,dy:1,s:"↓",rot:180},
+ L:{dx:-1,dy:0,s:"←",rot:270}
+};
+const COLORS=["#ff5b5b","#4d96ff","#38c878","#ffbd2e","#8b5cf6","#ef5da8","#16c7b7","#ff8743","#38bdf8","#a3e635","#c084fc","#fb7185"];
+const $=id=>document.getElementById(id);
+const board=$("board");
+
+/* ---------- state ---------- */
+let game=null,history=[],moves=0,errors=0,elapsed=0,timer=null,started=false,paused=false,locked=false,hintId=null,combo=0,bestCombo=0;
+
+/* ---------- helpers ---------- */
+function save(){localStorage.setItem(STORE,JSON.stringify({current,unlocked,scores,streak,dark,mode}));}
+function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function key(x,y){return x+","+y}
+function timeText(s){return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+function config(level){
+ const l=Math.max(1,level);
+ if(mode==="easy"){
+  return {difficulty:"Easy",n:l<15?6:7,count:Math.min(8+Math.floor(l*.22),18),
+          shapes:["square","diamond"]};
+ }
+ if(mode==="medium"){
+  return {difficulty:"Medium",n:l<20?7:8,count:Math.min(18+Math.floor(l*.45),40),
+          shapes:["square","diamond","cross","corner","plus"]};
+ }
+ return {difficulty:"Hard",n:l<15?8:l<40?9:10,
+         count:Math.min((l<15?42:l<40?58:72)+Math.floor(l*.30),88),
+         shapes:["square","diamond","cross","corner","plus","triangle","ring"]};
+}
+/* ---------- shapes ---------- */
+function shapeCells(n,type){
+ const c=(n-1)/2,out=[];
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+  let v=false;
+  if(type==="square")v=true;
+  if(type==="diamond")v=Math.abs(x-c)+Math.abs(y-c)<=c+.5;
+  if(type==="cross"){let m=Math.floor(n/2);v=Math.abs(x-m)<=1||Math.abs(y-m)<=1}
+  if(type==="corner")v=x<=c||y<=c;
+  if(type==="plus"){let m=Math.floor(n/2);v=Math.abs(x-m)<=1||Math.abs(y-m)<=1||(x>c&&y>c)}
+  if(type==="triangle")v=y>=Math.abs(x-c);
+  if(type==="ring"){let d=Math.hypot(x-c,y-c);v=d>=c*.48&&d<=c*1.05}
+  if(v)out.push({x,y});
+ }
+ return out;
+}
+
+/* ---------- true solvable generator ----------
+   Build a solution backwards. Every newly-added arrow
+   must have a clear ray through the currently occupied
+   cells. The final board is exactly the same board, and
+   the reverse construction order is a verified solution.
+*/
+function rayClear(a,occupied,valid,n){
+ const d=DIRS[a.d];let x=a.x+d.dx,y=a.y+d.dy;
+ while(x>=0&&x<n&&y>=0&&y<n){
+  if(!valid.has(key(x,y)))return true; // outside playable shape
+  if(occupied.has(key(x,y)))return false;
+  x+=d.dx;y+=d.dy;
+ }
+ return true;
+}
+function buildPuzzle(){
+ const cfg=config(current);
+
+ for(let attempt=0;attempt<1200;attempt++){
+  const type=mode==="hard" ? "square" : rnd(cfg.shapes);
+  const cells=mode==="hard"
+    ? Array.from({length:cfg.n*cfg.n},(_,i)=>({x:i%cfg.n,y:Math.floor(i/cfg.n)}))
+    : shapeCells(cfg.n,type);
+
+  const valid=new Set(cells.map(c=>key(c.x,c.y)));
+  const target=mode==="hard" ? cells.length : Math.min(cfg.count,cells.length);
+
+  /*
+   * Hard mode:
+   * Build the puzzle backwards. At each step, add an arrow whose exit ray
+   * is clear through the arrows already placed. Reversing the construction
+   * gives a guaranteed solution. Since every cell is processed, every cell
+   * receives exactly one arrow.
+   */
+  const occupied=new Set();
+  const arr=[];
+  const order=shuffle(cells);
+
+  if(mode==="hard"){
+   for(const cell of order){
+    const directions=shuffle(Object.keys(DIRS));
+    let chosen=null;
+
+    for(const d of directions){
+     const candidate={x:cell.x,y:cell.y,d};
+     if(rayClear(candidate,occupied,valid,cfg.n)){
+      chosen=d;
+      break;
+     }
+    }
+
+    if(!chosen){
+     arr.length=0;
+     break;
+    }
+
+    arr.push({
+     x:cell.x,
+     y:cell.y,
+     d:chosen,
+     id:arr.length,
+     color:COLORS[arr.length%COLORS.length]
+    });
+    occupied.add(key(cell.x,cell.y));
+   }
+
+   if(arr.length!==cells.length)continue;
+  }else{
+   const ordered=shuffle(cells);
+   for(const cell of ordered){
+    if(arr.length>=target)break;
+
+    for(const d of shuffle(Object.keys(DIRS))){
+     const candidate={x:cell.x,y:cell.y,d};
+     if(rayClear(candidate,occupied,valid,cfg.n)){
+      arr.push({
+       x:cell.x,
+       y:cell.y,
+       d,
+       id:arr.length,
+       color:COLORS[arr.length%COLORS.length]
+      });
+      occupied.add(key(cell.x,cell.y));
+      break;
+     }
+    }
+   }
+
+   if(arr.length!==target)continue;
+  }
+
+  /*
+   * Final verification:
+   * Starting with the complete board, repeatedly remove the reverse-built
+   * arrows. If every arrow has a clear exit at its turn, the puzzle is valid.
+   */
+  const test=arr.map(a=>({...a}));
+  let validSolution=true;
+
+  for(let i=test.length-1;i>=0;i--){
+   const a=test[i];
+   const occ=new Set(test.map(z=>key(z.x,z.y)));
+   occ.delete(key(a.x,a.y));
+
+   if(!rayClear(a,occ,valid,cfg.n)){
+    validSolution=false;
+    break;
+   }
+
+   test.splice(i,1);
+  }
+
+  if(!validSolution)continue;
+
+  // Absolute final guarantee for Hard: no playable cell may be empty.
+  if(mode==="hard"){
+   const occupiedCells=new Set(arr.map(a=>key(a.x,a.y)));
+   if(occupiedCells.size!==cells.length)continue;
+  }
+
+  return {
+   n:cfg.n,
+   type,
+   valid:cells,
+   arrows:shuffle(arr)
+  };
+ }
+
+ // If the randomized construction fails repeatedly, use a deterministic
+ // full-board construction for Hard.
+ return fallback();
+}
+function fallback(){
+ const n=mode==="hard" ? (config(current).n||8) : 6;
+ const cells=Array.from({length:n*n},(_,i)=>({x:i%n,y:Math.floor(i/n)}));
+ const valid=new Set(cells.map(c=>key(c.x,c.y)));
+ const arr=[];
+ const occupied=new Set();
+
+ if(mode==="hard"){
+  /*
+   * Deterministic construction:
+   * Use an outward-facing direction whenever possible. Because cells are
+   * processed from the outside toward the inside, each newly-added arrow
+   * has a clear route through the already empty side of the board.
+   */
+  const ordered=[...cells].sort((a,b)=>{
+   const da=Math.min(a.x,n-1-a.x,a.y,n-1-a.y);
+   const db=Math.min(b.x,n-1-b.x,b.y,n-1-b.y);
+   return da-db;
+  });
+
+  for(const c of ordered){
+   const choices=[];
+   if(c.x===0)choices.push("L");
+   if(c.x===n-1)choices.push("R");
+   if(c.y===0)choices.push("U");
+   if(c.y===n-1)choices.push("D");
+
+   const all=shuffle(["U","R","D","L"]);
+   const d=[...choices,...all].find(dir=>
+     rayClear({x:c.x,y:c.y,d:dir},occupied,valid,n)
+   ) || "U";
+
+   arr.push({
+    x:c.x,
+    y:c.y,
+    d,
+    id:arr.length,
+    color:COLORS[arr.length%COLORS.length]
+   });
+   occupied.add(key(c.x,c.y));
+  }
+ }else{
+  const candidates=cells.filter(c=>
+   c.x===0||c.x===n-1||c.y===0||c.y===n-1
+  );
+
+  for(const c of shuffle(candidates).slice(0,12)){
+   const d=c.x===0?"L":c.x===n-1?"R":c.y===0?"U":"D";
+   arr.push({
+    x:c.x,
+    y:c.y,
+    d,
+    id:arr.length,
+    color:COLORS[arr.length%COLORS.length]
+   });
+  }
+ }
+
+ return {n,type:"square",valid:cells,arrows:arr};
+}
+/* ---------- rendering ---------- */
+function render(){
+ board.style.setProperty("--n",game.n);
+ board.innerHTML="";
+ const valid=new Set(game.valid.map(c=>key(c.x,c.y)));
+ for(let y=0;y<game.n;y++)for(let x=0;x<game.n;x++){
+  const cell=document.createElement("div");
+  cell.className=valid.has(key(x,y))?"cell valid":"cell invalid";
+  board.appendChild(cell);
+ }
+ for(const a of game.arrows){
+  const cell=board.children[a.y*game.n+a.x]; if(!cell)continue;
+  const el=document.createElement("div");
+  el.className="arrow";
+  el.dataset.id=a.id;
+  el.textContent=DIRS[a.d].s;
+  el.style.background=`linear-gradient(145deg,${lighten(a.color,16)},${a.color})`;
+  el.addEventListener("pointerdown",e=>{e.preventDefault();move(a.id)});
+  cell.appendChild(el);
+ }
+ updateUI();
+}
+function lighten(hex,n){
+ let v=parseInt(hex.slice(1),16),r=Math.min(255,(v>>16)+n),g=Math.min(255,((v>>8)&255)+n),b=Math.min(255,(v&255)+n);
+ return"#"+((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1);
+}
+
+/* ---------- move validation ---------- */
+function canMove(a){
+ const valid=new Set(game.valid.map(c=>key(c.x,c.y)));
+ const occ=new Set(game.arrows.map(z=>key(z.x,z.y)));
+ occ.delete(key(a.x,a.y));
+ return rayClear(a,occ,valid,game.n);
+}
+function move(id){
+ if(locked||paused||!game)return;
+ const a=game.arrows.find(z=>z.id===id);if(!a)return;
+ if(!canMove(a)){
+  errors++;combo=0;updateUI();toast("Blocked — clear the arrow in front first");shake(id);beep(150,.07,"square");
+  return;
+ }
+ if(!started)startTimer();
+ history.push(game.arrows.map(z=>({...z})));
+ moves++;
+ combo++;bestCombo=Math.max(bestCombo,combo);
+ const el=document.querySelector(`.arrow[data-id="${id}"]`);
+ if(el){
+  const d=DIRS[a.d],dist=game.n*95;
+  el.style.setProperty("--ex",d.dx*dist+"px");
+  el.style.setProperty("--ey",d.dy*dist+"px");
+  el.style.setProperty("--rot",(360+d.rot)+"deg");
+  el.classList.add("exit");particles(el,a.color);
+ }
+ beep(420+Math.min(moves,30)*7,.06,"sine"); if(combo>=2) showCombo(combo);
+ locked=true;
+ setTimeout(()=>{
+  game.arrows=game.arrows.filter(z=>z.id!==id);
+  locked=false;
+  message("Nice move!");
+  render();
+  if(!game.arrows.length)finish();
+ },190);
+}
+function shake(id){
+ const el=document.querySelector(`.arrow[data-id="${id}"]`);
+ if(el){el.classList.remove("blocked");void el.offsetWidth;el.classList.add("blocked")}
+}
+function undo(){
+ if(locked||!history.length)return;
+ game.arrows=history.pop().map(z=>({...z}));
+ moves=Math.max(0,moves-1);
+ if(game.arrows.length)hintId=null;
+ message("Move undone");beep(260,.06,"triangle");render();
+}
+
+/* ---------- hint ---------- */
+function hint(){
+ if(locked||!game.arrows.length)return;
+ hintId=null;
+ const a=game.arrows.find(z=>canMove(z));
+ if(!a)return;
+ hintId=a.id;
+ render();
+ const el=document.querySelector(`.arrow[data-id="${a.id}"]`);
+ if(el)el.classList.add("hint");
+ message("💡 This arrow is clear");
+ setTimeout(()=>{hintId=null;render();message("Find an arrow with a clear path.")},1600);
+}
+
+/* ---------- scoring ---------- */
+function stars(){
+ const cfg=config(current);
+ const ideal=cfg.count;
+ const generous=ideal+Math.ceil(ideal*.35);
+ if(errors===0&&moves<=ideal)return 3;
+ if(errors<=2&&moves<=generous)return 2;
+ return 1;
+}
+function updateUI(){
+ const cfg=config(current),s=stars();
+ $("combo").textContent=combo+"×";
+ $("level").textContent=mode[0].toUpperCase()+mode.slice(1)+" · Level "+current;
+ $("diff").textContent=cfg.difficulty;
+ $("fillInfo").textContent=mode==="hard" ? "FULL BOARD • NO EMPTY CELLS" : mode==="medium" ? "DENSE BOARD" : "BEGINNER BOARD";
+ $("moves").textContent=moves;
+ $("left").textContent=game?game.arrows.length:0;
+ $("errors").textContent=errors;
+ $("time").textContent=timeText(elapsed);
+ [...$("stars").children].forEach((x,i)=>x.classList.toggle("on",i<s));
+}
+
+/* ---------- timer ---------- */
+function startTimer(){
+ if(started)return;
+ started=true;
+ timer=setInterval(()=>{if(!paused){elapsed++;$("time").textContent=timeText(elapsed)}},1000);
+}
+function stopTimer(){if(timer){clearInterval(timer);timer=null}}
+function resetTimer(){stopTimer();started=false;elapsed=0}
+
+/* ---------- level ---------- */
+function loadLevel(level=current){
+ current=Math.max(1,Math.max(1,level));
+ save();resetTimer();history=[];moves=0;errors=0;combo=0;bestCombo=0;paused=false;locked=false;hintId=null;
+ game=buildPuzzle();message(mode==="hard" ? `Full board: ${game.arrows.length}/${game.valid.length} arrows` : "Find an arrow with a clear path.");render();
+}
+function finish(){
+ locked=true;stopTimer();
+ const s=stars(),old=scores[current];
+ if(!old||s>old.stars||(s===old.stars&&(moves<old.moves||(moves===old.moves&&elapsed<old.time)))){
+  scores[current]={stars:s,moves,time:elapsed,errors};
+ }
+ if(current>=unlocked)unlocked=current+1;
+ streak++;save();
+ $("wm").textContent=moves;$("wt").textContent=timeText(elapsed);$("we").textContent=errors;
+ $("winStars").textContent="★".repeat(s)+"☆".repeat(3-s);
+ $("winSub").textContent=s===3?"Perfect run!":s===2?"Great solve!":"Puzzle cleared!";
+ $("win").classList.add("show");
+ beep(820,.12);setTimeout(()=>beep(1040,.15),120);
+}
+
+/* ---------- levels ---------- */
+function showLevels(){
+ const list=$("levelList");list.innerHTML="";
+ for(let i=1;i<=Math.max(unlocked+20, current+20);i++){
+  const b=document.createElement("button");b.className="levelBtn";
+  const lockedLevel=i>unlocked;
+  b.textContent=lockedLevel?"🔒":i;
+  if(i===current)b.classList.add("current");
+  if(lockedLevel)b.classList.add("locked");else b.onclick=()=>{$("levelsModal").classList.remove("show");loadLevel(i)};
+  list.appendChild(b);
+ }
+ $("levelsModal").classList.add("show");
+}
+
+/* ---------- UI extras ---------- */
+function message(t){$("message").textContent=t}
+function showCombo(n){const el=$("comboPop");el.textContent="🔥 "+n+" COMBO";el.classList.remove("show");void el.offsetWidth;el.classList.add("show")}
+let toastTimer;
+function toast(t){const el=$("toast");el.textContent=t;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1200)}
+function particles(el,color){
+ const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+ for(let i=0;i<8;i++){
+  const p=document.createElement("div");p.className="particle";p.style.background=color;p.style.left=cx+"px";p.style.top=cy+"px";
+  const ang=Math.random()*Math.PI*2,dist=18+Math.random()*55;p.style.setProperty("--x",Math.cos(ang)*dist+"px");p.style.setProperty("--y",Math.sin(ang)*dist+"px");
+  document.body.appendChild(p);setTimeout(()=>p.remove(),600);
+ }
+}
+
+/* ---------- audio ---------- */
+let audio;
+function beep(freq=500,dur=.06,type="sine"){
+ try{
+  audio??=new(window.AudioContext||window.webkitAudioContext)();
+  if(audio.state==="suspended")audio.resume();
+  const o=audio.createOscillator(),g=audio.createGain();
+  o.type=type;o.frequency.value=freq;g.gain.value=.035;o.connect(g);g.connect(audio.destination);o.start();
+  g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+dur);o.stop(audio.currentTime+dur);
+ }catch{}
+}
+
+/* ---------- theme ---------- */
+function setTheme(){
+ document.body.classList.toggle("dark",dark);
+}
+dark=dark;setTheme();
+
+/* ---------- events ---------- */
+$("undo").onclick=undo;
+$("hint").onclick=hint;
+$("restart").onclick=()=>loadLevel(current);
+$("levels").onclick=showLevels;
+$("closeLevels").onclick=()=>$("levelsModal").classList.remove("show");
+$("theme").onclick=()=>{dark=!dark;save();setTheme()};
+$("pause").onclick=()=>{
+ if(!game||locked)return;
+ paused=true;
+ $("pauseModal").classList.add("show");
+ message("Game paused");
+};
+$("resume").onclick=()=>{
+ paused=false;
+ $("pauseModal").classList.remove("show");
+ message("Find an arrow with a clear path.");
+};
+$("replay").onclick=()=>{$("win").classList.remove("show");loadLevel(current)};
+$("next").onclick=()=>{$("win").classList.remove("show");loadLevel(current+1)};
+
+
+document.querySelectorAll(".modeBtn").forEach(btn=>{
+ btn.onclick=()=>{
+  mode=btn.dataset.mode;
+  current=1;
+  unlocked=1;
+  scores={};
+  save();
+  document.querySelectorAll(".modeBtn").forEach(x=>x.style.outline="none");
+  btn.style.outline="3px solid var(--accent)";
+  loadLevel(1);
+  toast(mode.charAt(0).toUpperCase()+mode.slice(1)+" mode");
+ };
+});
+document.querySelectorAll(".modeBtn").forEach(btn=>{
+ if(btn.dataset.mode===mode)btn.style.outline="3px solid var(--accent)";
+});
+
+document.addEventListener("keydown",e=>{
+ if(e.key==="Escape"){
+  if($("pauseModal").classList.contains("show"))$("resume").click();
+  else if(started&&!locked){paused=true;$("pauseModal").classList.add("show")}
+ }
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z")undo();
+});
+
+/* Prevent accidental browser gestures on the game surface. */
+board.addEventListener("contextmenu",e=>e.preventDefault());
+document.addEventListener("gesturestart",e=>e.preventDefault?.());
+
+/* ---------- start ---------- */
+loadLevel(current);
+</script>
+</body>
+</html>
